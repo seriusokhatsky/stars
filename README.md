@@ -16,4 +16,4 @@ https://codepen.io/5erg/pen/MXVBpW
 | Resource | LINK |
 | ------ | ------ |
 | Idea | http://azarclub.fr |
-| Tutorial | https://www.youtube.com/watch?v=XjZ9iu_Z9G8 |
+| Tutorial | https://www.youtube.com/watch?v=4x6wAFggne8 |
