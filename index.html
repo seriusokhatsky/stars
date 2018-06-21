@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Test</title>
+	<style type="text/css">
+		* {
+			margin: 0;
+			padding: 0;
+		}
+
+		body {
+		}
+
+		canvas:first-child {
+			background: url(img.jpg) no-repeat center center;
+			background-size: cover;
+		}
+
+		canvas {
+			position: absolute;
+			top:0;
+			bottom: 0;
+			left: 0;
+			right: 0;
+			overflow: hidden;
+		}
+	</style>
+</head>
+<body>
+
+	<canvas id="canvas"></canvas>
+	<canvas id="starCanvas" style="display: none;"></canvas>
+
+	<script type="text/javascript" src="noise.js"></script>
+	<script type="text/javascript" src="three.js"></script>
+
+	<script type="text/javascript">
+
+		var scene = new THREE.Scene();
+		var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
+
+		var renderer = new THREE.WebGLRenderer({ alpha: true });
+
+		renderer.setSize( window.innerWidth, window.innerHeight );
+
+		document.body.prepend( renderer.domElement );
+		camera.position.z = 3000;
+
+		var simplex = new SimplexNoise();
+
+		let width, height, halfX, halfY, noise, time = 0, mouseX = 0, mouseY = 0, dmX = 0, dmY = 0, koef = 0, spheres = [];;
+
+		let color = "#ff0000";
+		
+		let canvas = document.getElementById('canvas');
+		let ctx = canvas.getContext('2d');
+
+		let lines = [];
+
+		let N = 4;
+		let n = 100;
+
+		let radius = 150;
+
+		for (let i = 0; i < N; i++) {
+			lines[i] = [];
+			for (let j = 0; j <= n; j++) {
+				lines[i][j] = {
+					x: Math.sin(j/n*2*Math.PI),
+					y: Math.cos(j/n*2*Math.PI),
+					l: 4
+				}
+				lines[i][j]._x = lines[i][j].x;
+				lines[i][j]._y = lines[i][j].y;
+			}
+		}
+
+		window.addEventListener('resize', resize)
+
+		function resize() {
+			width = window.innerWidth
+			height = window.innerHeight
+
+			canvas.width = width
+			canvas.height = height
+
+			halfX = width/2
+			halfY = height/2
+
+			camera.aspect = width/height;
+			camera.updateProjectionMatrix();
+			renderer.setSize( width, height );
+		}
+
+		resize();
+
+		window.addEventListener('mousemove', mouse)
+
+		function mouse(event) {
+			mouseX = event.clientX - halfX
+			mouseY = event.clientY - halfY
+		}
+
+		let starCanvas = document.getElementById('starCanvas');
+		starCanvas.width = 16;
+		starCanvas.height = 16;
+		let starCtx = starCanvas.getContext('2d');
+
+		grd = starCtx.createRadialGradient(8.000, 8.000, 0.000, 8.000, 8.000, 8.000);
+
+		// Add colors
+		grd.addColorStop(0.503, 'rgba(255, 255, 255, 1.000)');
+		grd.addColorStop(0.702, 'rgba(71, 96, 155, 1.000)');
+		grd.addColorStop(1.000, 'rgba(0, 0, 0, 1.000)');
+
+		// Fill with gradient
+		starCtx.fillStyle = grd;
+		starCtx.fillRect(0, 0, 16, 16);
+
+		// var grd=starCtx.createRadialGradient(8,8,5,12,12,16);
+		// grd.addColorStop(0,"blue");
+		// grd.addColorStop(1,"white");
+
+		// // Fill with gradient
+		// starCtx.fillStyle=grd;
+		// starCtx.fillRect(0,0,16,16);
+
+		var geometry = new THREE.SphereBufferGeometry( 4, 32, 16 );
+		var material = new THREE.MeshBasicMaterial( { 
+			color: 0xffffff,
+			map: new THREE.CanvasTexture(starCanvas)
+		} );
+
+		for ( var i = 0; i < 1000; i ++ ) {
+			var mesh = new THREE.Mesh( geometry, material );
+
+			mesh.position.x = Math.random() * 10000 - 5000;
+			mesh.position.y = Math.random() * 10000 - 5000;
+			mesh.position.z = Math.random() * 10000 - 5000;
+
+			mesh.scale.x = mesh.scale.y = mesh.scale.z = Math.random() * 2 + .5;
+
+			scene.add( mesh );
+
+			spheres.push( mesh );
+		}
+
+		function update() {
+
+			dmX += (mouseX - dmX)*.1
+			dmY += (mouseY - dmY)*.1
+
+			for (let i = 0; i < N; i++) {
+				for (let j = 0; j <= n; j++) {
+					noise = simplex.noise3D(lines[i][j]._x, lines[i][j]._y, time/100);
+
+					lines[i][j].x = lines[i][j]._x + noise * .08;
+					lines[i][j].y = lines[i][j]._y + noise * .08;
+
+
+				  	koef = lines[i][j].x*dmX/halfX + lines[i][j].y*dmY/halfY;
+
+				  	lines[i][j].l = 4 + 4*koef;
+				}
+			}
+
+			// Three js build scene
+
+
+		}
+
+		function render() {
+			ctx.clearRect(0, 0, width, height);
+			ctx.beginPath();
+			ctx.strokeStyle = color;
+			ctx.lineCap = 'round';
+			ctx.lineJoin = 'round';
+			for (let i = 0; i < N; i++) {
+				for (let j = 1; j <= n; j++) {
+					ctx.beginPath();
+					ctx.moveTo(lines[i][j-1].x * ( radius + 20*i ) + halfX +  (i + 1) * dmX / 70, lines[i][j-1].y * ( radius + 20*i ) + halfY + (i + 1) *  dmY / 70);
+					ctx.lineTo(lines[i][j].x * ( radius + 20*i ) + halfX +  (i + 1) * dmX / 70, lines[i][j].y * ( radius + 20*i ) + halfY + (i + 1) *  dmY / 70);
+					ctx.lineWidth = lines[i][j].l < 2 ? 2 : lines[i][j].l;
+					ctx.stroke();
+				}
+			}
+			ctx.stroke();
+
+			// Render Three js components
+			for ( var i = 0, il = spheres.length; i < il; i ++ ) {
+				var sphere = spheres[ i ];
+				sphere.position.x = 5000 * Math.cos( time / 10000 + i );
+				sphere.position.y = 5000 * Math.sin( time / 10000 + i * 1.1 );
+			}
+
+			camera.position.x += ( dmX - camera.position.x ) * .05;
+			camera.position.y += ( - dmY - camera.position.y ) * .05;
+			camera.lookAt( scene.position );
+		}
+
+		function raf() {
+
+			time++;
+
+			update();
+
+			render();
+
+			renderer.render( scene, camera );
+
+			window.requestAnimationFrame(raf);
+		}
+
+		raf();
+
+	</script>
+</body>
+</html>
